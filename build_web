@@ -7,8 +7,8 @@ cd build/web
 
 echo "[2/4] Generating CMake build system with Qt 6 WebAssembly Toolchain..."
 # Assuming Qt 6 is in the user's PATH or provided via QT_HOST_PATH
-if [ -f "$HOME/Qt/6.11.0/wasm_singlethread/bin/qt-cmake" ]; then
-    QMAKE_CMD="$HOME/Qt/6.11.0/wasm_singlethread/bin/qt-cmake"
+if [ -f "$HOME/Qt/6.8.1/wasm_singlethread/bin/qt-cmake" ]; then
+    QMAKE_CMD="$HOME/Qt/6.8.1/wasm_singlethread/bin/qt-cmake"
 else
     QMAKE_CMD=$(command -v qt-cmake || echo "cmake")
 fi
