@@ -177,9 +177,9 @@
         var appArgs = [];
         if (isMobile) {
             appArgs.push("--useMobileUi");
-            console.log("Starting in Mobile VESC UI mode.");
+            console.log("Starting in Mobile VESC UI mode");
         } else {
-            console.log("Starting in full Desktop VESC Tool mode.");
+            console.log("Starting in full Desktop VESC Tool mode");
         }
 
         var Module = {
@@ -234,7 +234,7 @@
             totalDependencies: 0,
             monitorRunDependencies: function (left) {
                 this.totalDependencies = Math.max(this.totalDependencies, left);
-                Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete.');
+                Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies - left) + '/' + this.totalDependencies + ')' : 'All downloads complete');
             }
         };
 
