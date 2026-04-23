@@ -25,7 +25,7 @@ import Vedder.vesc
 Item {
     id: rootItem
     property int animationDuration: 500
-    property BleUart mBle: VescIf.bleDevice()
+    property var mBle: VescIf.bleDevice()
     property Commands mCommands: VescIf.commands()
     property bool opened: true
     property bool pingTcpHub: false

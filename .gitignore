@@ -51,6 +51,7 @@ build_android_signed
 
 res/firmwares/*/
 /build
+/web/dist
 
 # Nix output
 /result

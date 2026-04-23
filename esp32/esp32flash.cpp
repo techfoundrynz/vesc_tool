@@ -22,6 +22,12 @@
 #include "esp32flash.h"
 #include "utility.h"
 
+#ifdef Q_OS_WASM
+#include <emscripten.h>
+#include <emscripten/val.h>
+static Esp32Flash *sWasmEspInstance = nullptr;
+#endif
+
 #ifdef HAS_SERIALPORT
 static QSerialPort *sPort = nullptr;
 #endif
@@ -30,6 +36,9 @@ static int sPortCnt = 0;
 
 Esp32Flash::Esp32Flash(QObject *parent) : QObject(parent)
 {
+#ifdef Q_OS_WASM
+    sWasmEspInstance = this;
+#endif
 #ifdef HAS_SERIALPORT
     if (!sPort) {
         sPort = new QSerialPort();
@@ -118,7 +127,15 @@ bool Esp32Flash::disconnectEsp()
 
 bool Esp32Flash::flashFirmware(QByteArray data, quint64 address)
 {
-#ifdef HAS_SERIALPORT
+#ifdef Q_OS_WASM
+    emit stateUpdate("Connecting to ESP via Web Serial and esptool-js...");
+    emscripten::val view = emscripten::val(emscripten::typed_memory_view(data.size(), (const uint8_t*)data.data()));
+    emscripten::val window = emscripten::val::global("window");
+    if (window.hasOwnProperty("webEspFlash")) {
+        window.call<void>("webEspFlash", view, emscripten::val((int)address));
+    }
+    return true;
+#elif defined(HAS_SERIALPORT)
     if (!sPort->isOpen()) {
         emit stateUpdate("Not connected");
         return false;
@@ -449,3 +466,23 @@ esp_loader_error_t loader_port_change_baudrate(uint32_t baudrate)
     return ESP_LOADER_ERROR_FAIL;
 #endif
 }
+
+#ifdef Q_OS_WASM
+extern "C" {
+    EMSCRIPTEN_KEEPALIVE
+    void web_esp_flash_progress(double progress) {
+        if (sWasmEspInstance) {
+            emit sWasmEspInstance->flashProgress(progress);
+        }
+    }
+    EMSCRIPTEN_KEEPALIVE
+    void web_esp_state_update(const char* state) {
+        if (sWasmEspInstance) {
+            emit sWasmEspInstance->stateUpdate(QString(state));
+            if (QString(state).contains("Done") || QString(state).contains("verified")) {
+                emit sWasmEspInstance->flashProgress(1.0);
+            }
+        }
+    }
+}
+#endif

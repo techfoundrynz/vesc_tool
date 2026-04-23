@@ -39,6 +39,12 @@
 #include <QFontDatabase>
 #include <QPixmapCache>
 
+#ifdef Q_OS_WASM
+#include <emscripten.h>
+#include <QDir>
+#include <QFileInfo>
+#endif
+
 #include "tcphub.h"
 
 #ifndef HAS_BLUETOOTH
@@ -57,8 +63,9 @@
 #ifndef USE_MOBILE
 
 #include <QProxyStyle>
+#ifndef Q_OS_WASM
 #include <QtConcurrent/QtConcurrent>
-
+#endif
 // Disables focus drawing for all widgets
 class Style_tweaks : public QProxyStyle
 {
@@ -168,6 +175,7 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("VESC");
     QCoreApplication::setOrganizationDomain("vesc-project.com");
     QCoreApplication::setApplicationName("VESC Tool");
+
     QSettings set;
     bool isDark = set.value("darkMode", true).toBool();
     Utility::setDarkMode(isDark);
@@ -1699,6 +1707,8 @@ int main(int argc, char *argv[])
 #ifdef Q_OS_IOS
     SetIosParams();
 #endif
+
+
 
     int res = app->exec();
 

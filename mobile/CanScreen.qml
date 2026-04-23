@@ -27,7 +27,7 @@ Item {
     id: rootItem
 
     property var dialogParent: ApplicationWindow.overlay
-    property BleUart mBle: VescIf.bleDevice()
+    property var mBle: VescIf.bleDevice()
     property Commands mCommands: VescIf.commands()
     property int animationSpeed: 500
 

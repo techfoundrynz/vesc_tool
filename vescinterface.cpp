@@ -134,7 +134,7 @@ VescInterface::VescInterface(QObject *parent) : QObject(parent)
     mWakeLockActive = false;
 
     // Serial
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT)
     mSerialPort = new QSerialPort(this);
     mLastSerialPort = mSettings.value("serial_port", "").toString();
     mLastSerialBaud = mSettings.value("serial_baud", 115200).toInt();
@@ -142,6 +142,13 @@ VescInterface::VescInterface(QObject *parent) : QObject(parent)
     connect(mSerialPort, &QIODevice::readyRead, this, &VescInterface::serialDataAvailable);
     connect(mSerialPort, &QSerialPort::errorOccurred,
             this, &VescInterface::serialPortError);
+#elif defined(HAS_WEB_SERIAL)
+    mSerialPort = new WebSerialPort(this);
+    mLastSerialPort = mSettings.value("serial_port", "").toString();
+    mLastSerialBaud = mSettings.value("serial_baud", 115200).toInt();
+
+    connect(mSerialPort, &WebSerialPort::readyRead, this, &VescInterface::serialDataAvailable);
+    connect(mSerialPort, &WebSerialPort::error, this, &VescInterface::serialPortError);
 #endif
 
     // CANbus
@@ -176,7 +183,7 @@ VescInterface::VescInterface(QObject *parent) : QObject(parent)
             this, &VescInterface::udpInputError);
 
     // BLE
-#ifdef HAS_BLUETOOTH
+#if defined(HAS_BLUETOOTH)
     mBleUart = new BleUart(this);
     mLastBleAddr = mSettings.value("ble_addr").toString();
 
@@ -208,6 +215,38 @@ VescInterface::VescInterface(QObject *parent) : QObject(parent)
         mSettings.setValue("ble_addr", mLastBleAddr);
     });
     connect(mBleUart, &BleUart::unintentionalDisconnect, this, &VescInterface::bleUnintentionalDisconnect);
+#elif defined(HAS_WEB_BLUETOOTH)
+    mBleUart = new WebBluetooth(this);
+    mLastBleAddr = mSettings.value("ble_addr").toString();
+
+    {
+        int size = mSettings.beginReadArray("bleNames");
+        for (int i = 0; i < size; ++i) {
+            mSettings.setArrayIndex(i);
+            QString address = mSettings.value("address").toString();
+            QString name = mSettings.value("name").toString();
+            mBleNames.insert(address, name);
+        }
+        mSettings.endArray();
+    }
+
+    {
+        int size = mSettings.beginReadArray("blePreferred");
+        for (int i = 0; i < size; ++i) {
+            mSettings.setArrayIndex(i);
+            QString address = mSettings.value("address").toString();
+            bool pref = mSettings.value("preferred").toBool();
+            mBlePreferred.insert(address, pref);
+        }
+        mSettings.endArray();
+    }
+
+    connect(mBleUart, &WebBluetooth::dataRx, this, &VescInterface::bleDataRx);
+    connect(mBleUart, &WebBluetooth::connected, [this]{
+        setLastConnectionType(CONN_BLE);
+        mSettings.setValue("ble_addr", mLastBleAddr);
+    });
+    connect(mBleUart, &WebBluetooth::unintentionalDisconnect, this, &VescInterface::bleUnintentionalDisconnect);
 #else
     mBleUart = new BleUartDummy(this);
 #endif
@@ -2082,7 +2121,7 @@ void VescInterface::setAskQmlLoad(bool newAskQmlLoad)
     mAskQmlLoad = newAskQmlLoad;
 }
 
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
 QString VescInterface::getLastSerialPort() const
 {
     return mLastSerialPort;
@@ -2106,11 +2145,19 @@ int VescInterface::getLastCANbusBitrate() const
 }
 #endif
 
-#ifdef HAS_BLUETOOTH
+#if defined(HAS_BLUETOOTH) || defined(HAS_WEB_BLUETOOTH)
+
+#if defined(HAS_BLUETOOTH)
 BleUart *VescInterface::bleDevice()
 {
     return mBleUart;
 }
+#elif defined(HAS_WEB_BLUETOOTH)
+QObject *VescInterface::bleDevice()
+{
+    return mBleUart;
+}
+#endif
 
 void VescInterface::storeBleName(QString address, QString name)
 {
@@ -2170,7 +2217,7 @@ bool VescInterface::isPortConnected()
         res = true;
     }
 
-#ifdef HAS_BLUETOOTH
+#if defined(HAS_BLUETOOTH) || defined(HAS_WEB_BLUETOOTH)
     if (mBleUart->isConnected()) {
         res = true;
     }
@@ -2388,7 +2435,7 @@ QString VescInterface::getConnectedPortName()
 
 bool VescInterface::connectSerial(QString port, int baudrate)
 {
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT)
     bool found = false;
     for (auto ser: listSerialPorts()) {
         VSerialInfo_t info = ser.value<VSerialInfo_t>();
@@ -2433,6 +2480,18 @@ bool VescInterface::connectSerial(QString port, int baudrate)
         mSerialPort->setFlowControl(QSerialPort::NoFlowControl);
     }
 
+    mLastSerialPort = port;
+    mLastSerialBaud = baudrate;
+    mSettings.setValue("serial_port", mLastSerialPort);
+    mSettings.setValue("serial_baud", mLastSerialBaud);
+    setLastConnectionType(CONN_SERIAL);
+    return true;
+#elif defined(HAS_WEB_SERIAL)
+    if(!mSerialPort->isOpen()) {
+        mSerialPort->setPortName(port);
+        mSerialPort->open();
+        mSerialPort->setBaudRate(baudrate);
+    }
     mLastSerialPort = port;
     mLastSerialBaud = baudrate;
     mSettings.setValue("serial_port", mLastSerialPort);
@@ -2900,14 +2959,16 @@ void VescInterface::emitConfigurationChanged()
     emit configurationChanged();
 }
 
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
 void VescInterface::serialDataAvailable()
 {
     while (mSerialPort->bytesAvailable() > 0) {
         mPacket->processData(mSerialPort->readAll());
     }
 }
+#endif
 
+#if defined(HAS_SERIALPORT)
 void VescInterface::serialPortError(QSerialPort::SerialPortError error)
 {
     QString message;
@@ -2929,6 +2990,17 @@ void VescInterface::serialPortError(QSerialPort::SerialPortError error)
 
        updateFwRx(false);
     }
+}
+#elif defined(HAS_WEB_SERIAL)
+void VescInterface::serialPortError(int error)
+{
+    QString message = QString("Web Serial port error code: %1").arg(error);
+    emit statusMessage(message, false);
+
+    if (mSerialPort->isOpen()) {
+        mSerialPort->close();
+    }
+    updateFwRx(false);
 }
 #endif
 
@@ -3132,7 +3204,7 @@ void VescInterface::udpInputError(QAbstractSocket::SocketError socketError)
     updateFwRx(false);
 }
 
-#ifdef HAS_BLUETOOTH
+#if defined(HAS_BLUETOOTH) || defined(HAS_WEB_BLUETOOTH)
 void VescInterface::bleDataRx(QByteArray data)
 {
     mPacket->processData(data);
@@ -3149,7 +3221,7 @@ void VescInterface::timerSlot()
     // Poll the serial port as well since readyRead is not emitted recursively. This
     // can be a problem when waiting for input with an additional event loop, such as
     // when using QMessageBox.
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
     serialDataAvailable();
 #endif
 #ifdef HAS_CANBUS

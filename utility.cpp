@@ -1579,6 +1579,7 @@ QVariantList Utility::getNetworkAddresses()
 {
     QVariantList res;
 
+#ifndef Q_OS_WASM
     for(QHostAddress a: QNetworkInterface::allAddresses()) {
         if(!a.isLoopback()) {
             if (a.protocol() == QAbstractSocket::IPv4Protocol) {
@@ -1586,6 +1587,7 @@ QVariantList Utility::getNetworkAddresses()
             }
         }
     }
+#endif
 
     return res;
 }

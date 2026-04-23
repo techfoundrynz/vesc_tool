@@ -6,6 +6,7 @@ set -e
 ./build_lin
 ./build_win
 ./build_android
+./build_web
 
 rm /storage/mnt_webserver/web/ubercart_downloads/vesc_tool_*
 mv build/lin/vesc_tool_* /storage/mnt_webserver/web/ubercart_downloads/

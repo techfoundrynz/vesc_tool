@@ -35,6 +35,8 @@
 
 #ifdef HAS_SERIALPORT
 #include <QSerialPort>
+#elif defined(HAS_WEB_SERIAL)
+#include "webserialport.h"
 #endif
 
 #ifdef HAS_CANBUS
@@ -50,6 +52,8 @@
 
 #ifdef HAS_BLUETOOTH
 #include "bleuart.h"
+#elif defined(HAS_WEB_BLUETOOTH)
+#include "webbluetooth.h"
 #else
 #include "bleuartdummy.h"
 #endif
@@ -112,7 +116,7 @@ public:
     Q_INVOKABLE int getLastTcpPort() const;
     Q_INVOKABLE QString getLastUdpServer() const;
     Q_INVOKABLE int getLastUdpPort() const;
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
     Q_INVOKABLE QString getLastSerialPort() const;
     Q_INVOKABLE int getLastSerialBaud() const;
 #endif
@@ -166,8 +170,16 @@ public:
     Q_INVOKABLE bool askQmlLoad() const;
     Q_INVOKABLE void setAskQmlLoad(bool newAskQmlLoad);
 
-#ifdef HAS_BLUETOOTH
+#if defined(HAS_BLUETOOTH)
     Q_INVOKABLE BleUart* bleDevice();
+    Q_INVOKABLE void storeBleName(QString address, QString name);
+    Q_INVOKABLE QString getBleName(QString address);
+    Q_INVOKABLE QString getLastBleAddr() const;
+    Q_INVOKABLE void storeBlePreferred(QString address, bool preferred);
+    Q_INVOKABLE bool getBlePreferred(QString address);
+    Q_INVOKABLE bool hasBluetooth() {return true;}
+#elif defined(HAS_WEB_BLUETOOTH)
+    Q_INVOKABLE QObject* bleDevice();
     Q_INVOKABLE void storeBleName(QString address, QString name);
     Q_INVOKABLE QString getBleName(QString address);
     Q_INVOKABLE QString getLastBleAddr() const;
@@ -314,9 +326,13 @@ signals:
 public slots:
 
 private slots:
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
     void serialDataAvailable();
+#endif
+#if defined(HAS_SERIALPORT)
     void serialPortError(QSerialPort::SerialPortError error);
+#elif defined(HAS_WEB_SERIAL)
+    void serialPortError(int error);
 #endif
 
 #ifdef HAS_CANBUS
@@ -332,7 +348,7 @@ private slots:
     void udpInputError(QAbstractSocket::SocketError socketError);
     void udpInputDataAvailable();
 
-#ifdef HAS_BLUETOOTH
+#if defined(HAS_BLUETOOTH) || defined(HAS_WEB_BLUETOOTH)
     void bleDataRx(QByteArray data);
     void bleUnintentionalDisconnect();
 #endif
@@ -409,8 +425,12 @@ private:
     // Connections
     conn_t mLastConnType;
 
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT)
     QSerialPort *mSerialPort;
+    QString mLastSerialPort;
+    int mLastSerialBaud;
+#elif defined(HAS_WEB_SERIAL)
+    WebSerialPort *mSerialPort;
     QString mLastSerialPort;
     int mLastSerialBaud;
 #endif
@@ -441,8 +461,11 @@ private:
     QHostAddress mLastUdpServer;
     int mLastUdpPort;
 
-#ifdef HAS_BLUETOOTH
+#if defined(HAS_BLUETOOTH)
     BleUart *mBleUart;
+    QString mLastBleAddr;
+#elif defined(HAS_WEB_BLUETOOTH)
+    WebBluetooth *mBleUart;
     QString mLastBleAddr;
 #else
     BleUartDummy *mBleUart;

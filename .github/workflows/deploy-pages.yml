@@ -1,0 +1,86 @@
+name: Deploy WebAssembly to GitHub Pages
+
+on:
+  push:
+    branches:
+      - master
+      - 'release_*'
+  workflow_dispatch:
+
+permissions:
+  contents: write # Required for peaceiris/actions-gh-pages to commit to the gh-pages branch
+  
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    concurrency:
+      # Ensure deployments for the same branch queue up
+      group: ${{ github.workflow }}-${{ github.ref }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Determine Deployment Paths
+        id: paths
+        run: |
+          BRANCH=${{ github.ref_name }}
+          echo "Current branch: $BRANCH"
+          
+          # Fetch all remote branches without downloading histories
+          # Then extract the ones that match our release_X_YY pattern
+          # and use sort -V to naturally rank them and pick the highest
+          HIGHEST_RELEASE=$(git ls-remote --heads origin | awk -F'refs/heads/' '{print $2}' | grep -E '^release_[0-9]+_[0-9]+$' | sort -V | tail -n 1)
+          
+          echo "Highest release branch on remote: $HIGHEST_RELEASE"
+          
+          if [[ "$BRANCH" == "master" ]]; then
+            DIR_NAME="master"
+            # If there are no release branches at all, master goes to the root
+            if [[ -z "$HIGHEST_RELEASE" ]]; then
+              DEPLOY_ROOT="true"
+            else
+              DEPLOY_ROOT="false"
+            fi
+          elif [[ "$BRANCH" == release_* ]]; then
+            DIR_NAME=${BRANCH#release_}
+            
+            # If the current branch is exactly the highest release, we deploy it to root as well
+            if [[ "$BRANCH" == "$HIGHEST_RELEASE" ]]; then
+              DEPLOY_ROOT="true"
+            else
+              DEPLOY_ROOT="false"
+            fi
+          else
+            # Fallback for manually triggered workflow on other ad-hoc branches
+            DIR_NAME="$BRANCH"
+            DEPLOY_ROOT="false"
+          fi
+          
+          echo "DIR_NAME: $DIR_NAME"
+          echo "DEPLOY_ROOT: $DEPLOY_ROOT"
+          
+          echo "dir=$DIR_NAME" >> $GITHUB_OUTPUT
+          echo "root=$DEPLOY_ROOT" >> $GITHUB_OUTPUT
+
+      - name: Build Docker Builder Image
+        run: docker build -t vesc-wasm-builder -f Dockerfile.wasm .
+
+      - name: Build WebAssembly App
+        run: docker run --rm -v ${{ github.workspace }}:/workspace vesc-wasm-builder
+
+      - name: Deploy to Branch Subdirectory
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web/dist
+          destination_dir: ${{ steps.paths.outputs.dir }}
+          keep_files: true
+
+      - name: Deploy to Root (Highest Release Only)
+        if: steps.paths.outputs.root == 'true'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./web/dist
+          destination_dir: .
+          keep_files: true

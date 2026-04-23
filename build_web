@@ -1,0 +1,38 @@
+#!/bin/bash
+set -e
+
+echo "[1/4] Preparing WebAssembly Build Directory..."
+mkdir -p build/web
+cd build/web
+
+echo "[2/4] Generating Makefile with Qt 5.15 WebAssembly Toolchain..."
+# Prefer the specific Wasm toolchain qmake if it exists, otherwise fallback to PATH
+if [ -f "$HOME/Qt/5.15.2/wasm_32/bin/qmake" ]; then
+    QMAKE_CMD="$HOME/Qt/5.15.2/wasm_32/bin/qmake"
+else
+    QMAKE_CMD=$(command -v qmake)
+fi
+$QMAKE_CMD ../../vesc_tool.pro
+
+echo "[3/4] Compiling VESC Tool for WebAssembly (this might take a while)..."
+make -j$(nproc)
+
+echo "[4/4] Copying artifacts to web/dist..."
+cd ../..
+mkdir -p web/dist
+
+# Copy the generated application binary and JS bindings.
+cp build/web/vesc_tool.js web/dist/
+cp build/web/vesc_tool.wasm web/dist/
+
+# Copy the Qt loader just in case any internal modules attempt to lazily load it
+cp build/web/qtloader.js web/dist/ 2>/dev/null || true
+cp build/web/qtlogo.svg web/dist/ 2>/dev/null || true
+
+# Copy handwritten WebAssembly HTML config and JS bridges
+cp web/* web/dist/ 2>/dev/null || true
+
+# Copy favicon
+cp res/version/original_v.svg web/dist/favicon.svg
+
+echo "Done! The web/dist/ folder is ready to be served!"
