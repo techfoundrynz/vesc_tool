@@ -29,9 +29,8 @@ RUN pip3 install --upgrade aqtinstall certifi
 # Install Qt 6.8.1 WebAssembly single thread target AND host tools
 WORKDIR /opt/qt
 # We install Qt into /opt/qt using aqtinstall. 
-# Qt 6 WebAssembly requires the standard desktop linux_gcc_64 installation for host tools (moc, rcc, uic)
-RUN aqt install-qt linux desktop 6.8.1 linux_gcc_64 -O /opt/qt -m qt5compat && \
-    aqt install-qt linux desktop 6.8.1 wasm_singlethread -O /opt/qt -m qt5compat
+# Qt 6 WebAssembly requires the standard desktop installation for host tools (moc, rcc, uic), which --autodesktop handles automatically.
+RUN aqt install-qt linux wasm 6.8.1 wasm_singlethread -O /opt/qt -m qt5compat --autodesktop
 
 # Add Qt bins and CMake to path
 ENV PATH="/opt/qt/6.8.1/wasm_singlethread/bin:${PATH}"
