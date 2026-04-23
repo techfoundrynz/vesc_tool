@@ -66,9 +66,16 @@ void Vesc3dItem::updateImage()
 
         if (mVesc3d.size() != size().toSize()) {
             mVesc3d.resize(size().toSize() * scale);
+#ifndef Q_OS_WASM
             mVesc3d.render(&mLastCornerImg, QPoint(), QRegion(), QWidget::RenderFlags());
+#endif
         }
 
+#ifndef Q_OS_WASM
         mLastCornerImg = mVesc3d.grabFramebuffer();
+#else
+        mLastCornerImg = QImage(mVesc3d.size(), QImage::Format_ARGB32);
+        mLastCornerImg.fill(Qt::darkGray);
+#endif
     }
 }

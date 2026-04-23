@@ -1708,8 +1708,14 @@ int main(int argc, char *argv[])
     SetIosParams();
 #endif
 
-
-
+#ifdef Q_OS_WASM
+    {
+        QSettings dummy;
+        QString configPath = dummy.fileName();
+        QFileInfo fi(configPath);
+        QDir().mkpath(fi.absolutePath());
+    }
+#endif
     int res = app->exec();
 
 #ifdef USE_MOBILE

@@ -209,9 +209,9 @@
        </item>
       </layout>
      </widget>
-     <widget class="QQuickWidget" name="qmlWidget">
+     <widget class="VQuickWidget" name="qmlWidget">
       <property name="resizeMode">
-       <enum>QQuickWidget::SizeRootObjectToView</enum>
+       <enum>VQuickWidget::SizeRootObjectToView</enum>
       </property>
      </widget>
     </widget>
@@ -220,9 +220,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QQuickWidget</class>
+   <class>VQuickWidget</class>
    <extends>QWidget</extends>
-   <header location="global">QtQuickWidgets/QQuickWidget</header>
+   <header>widgets/vquickwidget.h</header>
   </customwidget>
   <customwidget>
    <class>ImageWidget</class>

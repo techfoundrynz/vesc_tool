@@ -50,19 +50,29 @@ PageWelcome::PageWelcome(QWidget *parent) :
     mVesc = nullptr;
     ui->bgWidget->setPixmap(QPixmap("://res/bg.png"));
 
+#ifdef Q_OS_WASM
+    ui->qmlWidget->setVisible(false);
+#endif
+
     connect(ui->wizardFocSimpleButton, &QPushButton::clicked, [this]() {
+#ifndef Q_OS_WASM
         QMetaObject::invokeMethod(ui->qmlWidget->rootObject(), "setupMotors");
+#endif
     });
 
     connect(ui->wizardAppButton, qOverload<bool>(&QAbstractButton::clicked),
             this, &PageWelcome::startSetupWizardApp);
 
     connect(ui->multiSettingButton, &QPushButton::clicked, [this]() {
+#ifndef Q_OS_WASM
         QMetaObject::invokeMethod(ui->qmlWidget->rootObject(), "openMultiSettings");
+#endif
     });
 
     connect(ui->invertDirButton, &QPushButton::clicked, [this]() {
+#ifndef Q_OS_WASM
         QMetaObject::invokeMethod(ui->qmlWidget->rootObject(), "dirSetup");
+#endif
     });
 }
 
@@ -110,11 +120,13 @@ void PageWelcome::setVesc(VescInterface *vesc)
 {
     mVesc = vesc;
 
+#ifndef Q_OS_WASM
     ui->qmlWidget->engine()->rootContext()->setContextProperty("VescIf", mVesc);
     ui->qmlWidget->engine()->rootContext()->setContextProperty("QmlUi", this);
     ui->qmlWidget->engine()->rootContext()->setContextProperty("Utility", mUtil);
 
     ui->qmlWidget->setSource(QUrl(QLatin1String("qrc:/res/qml/WelcomeQmlPanel.qml")));
+#endif
 }
 
 void PageWelcome::on_autoConnectButton_clicked()
@@ -124,16 +136,22 @@ void PageWelcome::on_autoConnectButton_clicked()
 
 void PageWelcome::on_nrfPairButton_clicked()
 {
+#ifndef Q_OS_WASM
     QMetaObject::invokeMethod(ui->qmlWidget->rootObject(), "nrfQuickPair");
+#endif
 }
 
 void PageWelcome::on_setupBluetoothButton_clicked()
 {
+#ifndef Q_OS_WASM
     QMetaObject::invokeMethod(ui->qmlWidget->rootObject(), "openBleSetup");
+#endif
 }
 
 void PageWelcome::on_wizardIMUButton_clicked()
 {
+#ifndef Q_OS_WASM
     QMetaObject::invokeMethod(ui->qmlWidget->rootObject(), "openWizardIMU");
+#endif
 }
 

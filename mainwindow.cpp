@@ -991,11 +991,25 @@ void MainWindow::showMessageDialog(const QString &title, const QString &msg, boo
 {
     (void)richText;
 
+#ifdef Q_OS_WASM
+    QMessageBox *msgBox = new QMessageBox(this);
+    if (isGood) {
+        msgBox->setIcon(QMessageBox::Information);
+    } else {
+        msgBox->setIcon(QMessageBox::Warning);
+    }
+    msgBox->setWindowTitle(title);
+    msgBox->setText(msg);
+    msgBox->setStandardButtons(QMessageBox::Ok);
+    msgBox->setAttribute(Qt::WA_DeleteOnClose);
+    msgBox->open();
+#else
     if (isGood) {
         QMessageBox::information(this, title, msg);
     } else {
         QMessageBox::warning(this, title, msg);
     }
+#endif
 }
 
 void MainWindow::serialPortNotWritable(const QString &port)

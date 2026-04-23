@@ -170,12 +170,12 @@
         </item>
        </layout>
       </widget>
-      <widget class="QQuickWidget" name="qmlWidget">
+      <widget class="VQuickWidget" name="qmlWidget">
        <property name="autoFillBackground">
         <bool>true</bool>
        </property>
        <property name="resizeMode">
-        <enum>QQuickWidget::ResizeMode::SizeRootObjectToView</enum>
+        <enum>VQuickWidget::SizeRootObjectToView</enum>
        </property>
       </widget>
      </widget>
@@ -636,9 +636,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>QQuickWidget</class>
+   <class>VQuickWidget</class>
    <extends>QWidget</extends>
-   <header location="global">QtQuickWidgets/QQuickWidget</header>
+   <header location="global">widgets/vquickwidget.h</header>
   </customwidget>
   <customwidget>
    <class>VTextBrowser</class>

@@ -37,8 +37,13 @@ PageScripting::PageScripting(QWidget *parent) :
 {
     ui->setupUi(this);
     mVesc = nullptr;
-    ui->qmlWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+
+#ifdef Q_OS_WASM
+    ui->qmlWidget->setVisible(false);
+#else
+    ui->qmlWidget->setResizeMode(VQuickWidget::SizeRootObjectToView);
     ui->qmlWidget->setClearColor(Utility::getAppQColor("normalBackground"));
+#endif
 
     ui->mainEdit->setModeQml();
     makeEditorConnections(ui->mainEdit);
@@ -194,9 +199,11 @@ void PageScripting::setVesc(VescInterface *vesc)
     mVesc = vesc;
     mLoader.setVesc(vesc);
 
+#ifndef Q_OS_WASM
     ui->qmlWidget->engine()->rootContext()->setContextProperty("VescIf", mVesc);
     ui->qmlWidget->engine()->rootContext()->setContextProperty("QmlUi", this);
     ui->qmlWidget->engine()->rootContext()->setContextProperty("Utility", &mUtil);
+#endif
 }
 
 void PageScripting::reloadParams()
@@ -255,22 +262,26 @@ void PageScripting::debugMsgRx(QtMsgType type, const QString msg)
 
 void PageScripting::on_runButton_clicked()
 {
+#ifndef Q_OS_WASM
     ui->qmlWidget->setSource(QUrl(QLatin1String("qrc:/res/qml/DynamicLoader.qml")));
     ui->qmlWidget->engine()->clearComponentCache();
+#endif
     emit reloadQml(qmlToRun());
 }
 
 void PageScripting::on_stopButton_clicked()
 {
     if (mVesc) {
+#ifndef Q_OS_WASM
         ui->qmlWidget->deleteLater();
-        ui->qmlWidget = new QQuickWidget(this);
+        ui->qmlWidget = new VQuickWidget(this);
         ui->splitter->addWidget(ui->qmlWidget);
-        ui->qmlWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+        ui->qmlWidget->setResizeMode(VQuickWidget::SizeRootObjectToView);
         ui->qmlWidget->setClearColor(Utility::getAppQColor("normalBackground"));
         ui->qmlWidget->engine()->rootContext()->setContextProperty("VescIf", mVesc);
         ui->qmlWidget->engine()->rootContext()->setContextProperty("QmlUi", this);
         ui->qmlWidget->engine()->rootContext()->setContextProperty("Utility", &mUtil);
+#endif
     }
 
     mQmlUi.stopCustomGui();
@@ -290,8 +301,10 @@ void PageScripting::on_reloadAndRunButton_clicked()
 
     file.close();
 
+#ifndef Q_OS_WASM
     ui->qmlWidget->setSource(QUrl(QLatin1String("qrc:/res/qml/DynamicLoader.qml")));
     ui->qmlWidget->engine()->clearComponentCache();
+#endif
     emit reloadQml(qmlToRun());
 }
 

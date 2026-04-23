@@ -67,7 +67,9 @@ StartupIntroPage::StartupIntroPage(VescInterface *vesc, QWidget *parent)
 {
     mBrowser = new VTextBrowser;
     mBrowser->setFrameStyle(QFrame::NoFrame);
+#ifndef Q_OS_WASM
     mBrowser->viewport()->setAutoFillBackground(false);
+#endif
 
     ConfigParam *p = vesc->infoConfig()->getParam("wizard_startup_intro");
     if (p != 0) {
@@ -92,6 +94,9 @@ StartupUsagePage::StartupUsagePage(VescInterface *vesc, QWidget *parent)
     : QWizardPage(parent)
 {
     mBrowser = new VTextBrowser;
+#ifndef Q_OS_WASM
+    mBrowser->viewport()->setAutoFillBackground(false);
+#endif
     mAcceptBox = new QCheckBox("Yes, I understand and accept");
 
     ConfigParam *p = vesc->infoConfig()->getParam("wizard_startup_usage");
@@ -142,6 +147,9 @@ StartupWarrantyPage::StartupWarrantyPage(VescInterface *vesc, QWidget *parent)
     : QWizardPage(parent)
 {
     mBrowser = new VTextBrowser;
+#ifndef Q_OS_WASM
+    mBrowser->viewport()->setAutoFillBackground(false);
+#endif
     mAcceptBox = new QCheckBox("Yes, I understand and accept");
 
     ConfigParam *p = vesc->infoConfig()->getParam("wizard_startup_warranty");
@@ -193,7 +201,9 @@ StartupConclusionPage::StartupConclusionPage(VescInterface *vesc, QWidget *paren
 {
     mBrowser = new VTextBrowser;
     mBrowser->setFrameStyle(QFrame::NoFrame);
+#ifndef Q_OS_WASM
     mBrowser->viewport()->setAutoFillBackground(false);
+#endif
 
     ConfigParam *p = vesc->infoConfig()->getParam("wizard_startup_conclusion");
     if (p != 0) {

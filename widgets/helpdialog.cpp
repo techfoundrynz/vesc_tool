@@ -41,7 +41,9 @@ HelpDialog::HelpDialog(QString title, QString text, QWidget *parent) :
         ui->textEdit->setText(text);
     }
 
+#ifndef Q_OS_WASM
     ui->textEdit->viewport()->setAutoFillBackground(false);
+#endif
 }
 
 HelpDialog::~HelpDialog()

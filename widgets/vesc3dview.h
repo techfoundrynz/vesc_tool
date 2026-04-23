@@ -30,6 +30,31 @@
 QT_FORWARD_DECLARE_CLASS(QOpenGLShaderProgram)
 QT_FORWARD_DECLARE_CLASS(QOpenGLTexture)
 
+#ifdef Q_OS_WASM
+class Vesc3DView : public QWidget
+{
+    Q_OBJECT
+public:
+    explicit Vesc3DView(QWidget *parent = nullptr);
+    ~Vesc3DView();
+    void setBgColor(double r, double g, double b, double a);
+
+    QSize minimumSizeHint() const;
+    QSize sizeHint() const;
+    void setRollPitchYaw(double roll, double pitch, double yaw);
+    void setQuanternions(float q0, float q1, float q2, float q3);
+    
+private:
+    float mXRot;
+    float mYRot;
+    float mZRot;
+    float mScale;
+    float mQ0, mQ1, mQ2, mQ3;
+    bool mUseQuaternions;
+    QPoint mLastPos;
+    QColor mBgColor;
+};
+#else
 class Vesc3DView : public QOpenGLWidget, protected QOpenGLFunctions
 {
     Q_OBJECT
@@ -65,5 +90,6 @@ private:
     void updateUsingTimer();
 
 };
+#endif
 
 #endif // VESC3DVIEW_H

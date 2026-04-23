@@ -33,8 +33,12 @@ PageMotorComparison::PageMotorComparison(QWidget *parent) :
     ui->setupUi(this);
     layout()->setContentsMargins(0, 0, 0, 0);
 
-    ui->qmlWidget->setResizeMode(QQuickWidget::SizeRootObjectToView);
+#ifdef Q_OS_WASM
+    ui->qmlWidget->setVisible(false);
+#else
+    ui->qmlWidget->setResizeMode(VQuickWidget::SizeRootObjectToView);
     ui->qmlWidget->setClearColor(Utility::getAppQColor("normalBackground"));
+#endif
 
     ui->testRunButton->setIcon(Utility::getIcon("icons/Process-96.png"));
     ui->rescaleButton->setIcon(Utility::getIcon("icons/expand_off.png"));
@@ -428,9 +432,11 @@ void PageMotorComparison::setVesc(VescInterface *vesc)
 {
     mVesc = vesc;
 
+#ifndef Q_OS_WASM
     ui->qmlWidget->engine()->rootContext()->setContextProperty("VescIf", mVesc);
     ui->qmlWidget->engine()->rootContext()->setContextProperty("QmlUi", this);
     ui->qmlWidget->engine()->rootContext()->setContextProperty("Utility", &mUtil);
+#endif
 
     connect(mVesc->mcConfig(), &ConfigParams::paramChangedDouble,
             [this](QObject *src, QString name, double newParam) {
@@ -1214,8 +1220,10 @@ void PageMotorComparison::on_qmlRunButton_clicked()
     QString code = file.readAll();
     file.close();
 
+#ifndef Q_OS_WASM
     ui->qmlWidget->setSource(QUrl(QLatin1String("qrc:/res/qml/DynamicLoader.qml")));
     ui->qmlWidget->engine()->clearComponentCache();
+#endif
 
     code.prepend("import \"qrc:/mobile\";");
     code.prepend("import Vedder.vesc.vescinterface 1.0;");
@@ -1226,10 +1234,12 @@ void PageMotorComparison::on_qmlRunButton_clicked()
     }
 
     QTimer::singleShot(500, [this]() {
+#ifndef Q_OS_WASM
         connect(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
                 SIGNAL(testChanged()), this, SLOT(qmlTestChanged()));
         connect(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
                 SIGNAL(namesUpdated()), this, SLOT(qmlNamesUpdated()));
+#endif
         setQmlMotorParams();
         on_testRunButton_clicked();
     });
@@ -1246,7 +1256,9 @@ void PageMotorComparison::on_qmlRunButton_clicked()
 
 void PageMotorComparison::on_qmlStopButton_clicked()
 {
+#ifndef Q_OS_WASM
     ui->qmlWidget->setSource(QUrl(QLatin1String("")));
+#endif
 }
 
 void PageMotorComparison::qmlTestChanged()
@@ -1266,9 +1278,13 @@ void PageMotorComparison::qmlNamesUpdated()
 PageMotorComparison::QmlParams PageMotorComparison::getQmlParam(double progress)
 {
     QVariant returnedValue;
-    bool ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
-                                        "progressToParams",
-                                        Q_RETURN_ARG(QVariant, returnedValue), Q_ARG(QVariant, QVariant(progress)));
+    bool ok = false;
+
+#ifndef Q_OS_WASM
+    ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
+                                          "progressToParams",
+                                          Q_RETURN_ARG(QVariant, returnedValue), Q_ARG(QVariant, QVariant(progress)));
+#endif
 
     QmlParams res;
 
@@ -1330,10 +1346,13 @@ PageMotorComparison::QmlParams PageMotorComparison::getQmlParam(double progress)
 bool PageMotorComparison::qmlUpdateNames()
 {
     QVariant returnedValue;
+    bool ok = false;
 
-    bool ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
+#ifndef Q_OS_WASM
+    ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
                                    "extraNames",
                                    Q_RETURN_ARG(QVariant, returnedValue));
+#endif
 
     if (ok) {
         ok = returnedValue.canConvert<QVariantList>();
@@ -1385,9 +1404,12 @@ QString PageMotorComparison::getQmlXName()
     }
 
     QVariant returnedValue;
-    bool ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
+    bool ok = false;
+#ifndef Q_OS_WASM
+    ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
                                         "xAxisName",
                                         Q_RETURN_ARG(QVariant, returnedValue));
+#endif
 
     if (ok) {
         ok = returnedValue.canConvert<QString>();
@@ -1409,9 +1431,12 @@ double PageMotorComparison::getQmlXMin()
     }
 
     QVariant returnedValue;
-    bool ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
+    bool ok = false;
+#ifndef Q_OS_WASM
+    ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
                                         "xAxisMin",
                                         Q_RETURN_ARG(QVariant, returnedValue));
+#endif
 
     if (ok) {
         ok = returnedValue.canConvert<double>();
@@ -1433,9 +1458,12 @@ double PageMotorComparison::getQmlXMax()
     }
 
     QVariant returnedValue;
-    bool ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
+    bool ok = false;
+#ifndef Q_OS_WASM
+    ok = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
                                         "xAxisMax",
                                         Q_RETURN_ARG(QVariant, returnedValue));
+#endif
 
     if (ok) {
         ok = returnedValue.canConvert<double>();
@@ -1456,9 +1484,13 @@ void PageMotorComparison::setQmlProgressSelected(double progress)
         return;
     }
 
+#ifndef Q_OS_WASM
     mQmlProgressOk = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
                                                "progressSelected",
                                                Q_ARG(QVariant, progress));
+#else
+    mQmlProgressOk = false;
+#endif
 }
 
 void PageMotorComparison::setQmlMotorParams()
@@ -1467,8 +1499,12 @@ void PageMotorComparison::setQmlMotorParams()
         return;
     }
 
+#ifndef Q_OS_WASM
     mQmlMotorParamsOk = QMetaObject::invokeMethod(ui->qmlWidget->rootObject()->findChild<QObject*>("idComp"),
                                                   "motorDataUpdated",
                                                   Q_ARG(QVariant, QVariant::fromValue(MotorData(&mM1Config, getParamsUi(1)))),
                                                   Q_ARG(QVariant, QVariant::fromValue(MotorData(&mM2Config, getParamsUi(2)))));
+#else
+    mQmlMotorParamsOk = false;
+#endif
 }

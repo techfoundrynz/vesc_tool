@@ -20,12 +20,18 @@
 #include "vesc3dview.h"
 
 #include <QTimer>
+#ifndef Q_OS_WASM
 #include <QOpenGLShaderProgram>
 #include <QOpenGLTexture>
+#endif
 #include <cmath>
 #include <QPainter>
 
+#ifdef Q_OS_WASM
+Vesc3DView::Vesc3DView(QWidget *parent) : QWidget(parent)
+#else
 Vesc3DView::Vesc3DView(QWidget *parent) : QOpenGLWidget(parent)
+#endif
 {
     mXRot = 0;
     mYRot = 0;
@@ -39,6 +45,7 @@ Vesc3DView::Vesc3DView(QWidget *parent) : QOpenGLWidget(parent)
 
     mBgColor = palette().color(QPalette::Window);
 
+#ifndef Q_OS_WASM
     memset(mTextures, 0, sizeof(mTextures));
     mProgram = nullptr;
 
@@ -49,10 +56,12 @@ Vesc3DView::Vesc3DView(QWidget *parent) : QOpenGLWidget(parent)
     format.setProfile(QSurfaceFormat::CompatibilityProfile);
     format.setVersion(2, 1);
     setFormat(format);
+#endif
 }
 
 Vesc3DView::~Vesc3DView()
 {
+#ifndef Q_OS_WASM
     makeCurrent();
     mVbo.destroy();
     for (int i = 0; i < 6; ++i) {
@@ -60,6 +69,7 @@ Vesc3DView::~Vesc3DView()
     }
     delete mProgram;
     doneCurrent();
+#endif
 }
 
 void Vesc3DView::setBgColor(double r, double g, double b, double a)
@@ -86,7 +96,11 @@ void Vesc3DView::setRollPitchYaw(double roll, double pitch, double yaw)
     mYRot = float(pitch);
     mZRot = float(yaw);
     mUseQuaternions = false;
+#ifndef Q_OS_WASM
     updateUsingTimer();
+#else
+    update();
+#endif
 }
 
 void Vesc3DView::setQuanternions(float q0, float q1, float q2, float q3)
@@ -96,9 +110,14 @@ void Vesc3DView::setQuanternions(float q0, float q1, float q2, float q3)
     mQ2 = q2;
     mQ3 = q3;
     mUseQuaternions = true;
+#ifndef Q_OS_WASM
     updateUsingTimer();
+#else
+    update();
+#endif
 }
 
+#ifndef Q_OS_WASM
 void Vesc3DView::initializeGL()
 {
     initializeOpenGLFunctions();
@@ -270,3 +289,4 @@ void Vesc3DView::updateUsingTimer()
         update();
     });
 }
+#endif

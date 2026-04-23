@@ -57,6 +57,7 @@ HEADERS += \
     $$PWD/detectallfocdialog.h \
     $$PWD/dirsetup.h \
     $$PWD/vesc3dview.h \
+    $$PWD/vquickwidget.h \
     $$PWD/superslider.h
 
 SOURCES += \
