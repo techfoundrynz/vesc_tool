@@ -63,11 +63,16 @@ jobs:
           echo "dir=$DIR_NAME" >> $GITHUB_OUTPUT
           echo "root=$DEPLOY_ROOT" >> $GITHUB_OUTPUT
 
-      - name: Build Docker Builder Image
-        run: docker build -t vesc-wasm-builder -f Dockerfile.wasm .
+      # We lowercase the repository name to ensure it's a valid Docker image name
+      - name: Lowercase Repository Name
+        id: repo_name
+        run: echo "NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
       - name: Build WebAssembly App
-        run: docker run --rm -v ${{ github.workspace }}:/workspace vesc-wasm-builder
+        run: docker run --rm -v ${{ github.workspace }}:/workspace ghcr.io/${{ steps.repo_name.outputs.NAME }}/vesc-wasm-builder:qt5.15.2
 
       - name: Deploy to Branch Subdirectory
         uses: peaceiris/actions-gh-pages@v4

@@ -1,0 +1,36 @@
+name: Publish Docker Builder Image
+
+on:
+  push:
+    branches:
+      - master
+      - 'feat/web-vesc-tool'
+    paths:
+      - 'Dockerfile.wasm'
+  workflow_dispatch:
+
+permissions:
+  packages: write
+  contents: read
+
+jobs:
+  push_to_registry:
+    name: Build and Push Docker image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the repo
+        uses: actions/checkout@v4
+      
+      # We lowercase the repository name to ensure it's a valid Docker image name
+      - name: Lowercase Repository Name
+        id: repo_name
+        run: echo "NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      
+      - name: Log in to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+      
+      - name: Build Docker Image
+        run: docker build -t ghcr.io/${{ steps.repo_name.outputs.NAME }}/vesc-wasm-builder:qt5.15.2 -f Dockerfile.wasm .
+        
+      - name: Push Docker Image
+        run: docker push ghcr.io/${{ steps.repo_name.outputs.NAME }}/vesc-wasm-builder:qt5.15.2
