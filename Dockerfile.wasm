@@ -38,4 +38,4 @@ RUN echo "source /opt/emsdk/emsdk_env.sh > /dev/null 2>&1" >> /etc/bash.bashrc
 WORKDIR /workspace
 
 # By default, invoke our interactive shell or automated builder
-CMD ["/bin/bash", "-c", "source /opt/emsdk/emsdk_env.sh && ./build_web"]
+CMD ["/bin/bash", "-c", "source /opt/emsdk/emsdk_env.sh && bash ./build_web"]
