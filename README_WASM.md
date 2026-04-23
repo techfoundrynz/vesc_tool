@@ -1,25 +1,19 @@
 # VESC Tool WebAssembly Build Notes
 
-## Persistence and Settings (IDBFS vs localStorage)
+## Qt 6.8 CMake Architecture
+As of our latest major architectural upgrade, the WebAssembly port of VESC Tool has been fully migrated away from legacy Qt 5 / QMake configurations. 
 
-By default, Qt 5 WebAssembly applications typically use Emscripten's `IDBFS` (IndexedDB File System) to persist `QSettings` across page reloads.
+We now leverage the modern **Qt 6.8.1 WebAssembly environment** alongside standard `CMake` declarations. WebAssembly flags, including `ASYNCIFY` integrations and `idbfs_pre.js` hooks, are exclusively bundled into `CMakeLists.txt` via `EMSCRIPTEN` platform conditionals.
 
-However, the VESC Tool requires Emscripten's `-s ASYNCIFY=1` flag in order to suspend the C++ event loop and wait for asynchronous Web Serial / Web Bluetooth APIs without blocking the browser thread.
+When building the Wasm pipeline via Docker or compiling it locally in your own environment, you **must use Emscripten 3.1.70** (which strictly mirrors Qt 6.8.1 parity).
 
-**Extremely Important Bug:**
-There is a known, fatal bug in Emscripten 1.39 where compiling with **both** `ASYNCIFY=1` and `lidbfs.js` enabled causes stack unwinding conflicts. When the `QSettings` destructor internally fires `FS.syncfs(false)` inside an asynchronous IndexedDB callback (`transaction.oncomplete`), the Stack Unwinding logic misinterprets the C++ boundary execution context, leading to a fatal `abort(RuntimeError: unreachable)` trap. 
+## Persistence and Settings (Native IDBFS)
+Historically (under Qt 5.15), VESC Tool was forced to utilize a manual polling `localStorage` bridge injected directly inside `main.cpp` because Qt 5's internal `QSettings` destructor triggered fatal unwinding collisions when mixed with Emscripten's `ASYNCIFY` yielding and asynchronous `IDBFS` transactions.
 
-### Resolution: The LocalStorage Shim
+With the migration to Qt 6.8:
+1. Native `QSettings` hooks are heavily bulletproofed and operate effectively with native JS HTML5 bindings under the hood without triggering stack unwind traps!
+2. The manual `EM_ASM` localStorage bridge has been completely deleted.
+3. We actively hook `idbfs_pre.js` via the `CMakeLists.txt` linker flag (`--pre-js`) to construct the user's `MEMFS` instance (mounted at `/home/web_user`). This correctly maps and persists traditional C++ `QFile` operations (like saving Logs and Motor Profiles out of the virtual filesystem) asynchronously into the browser's IndexedDB.
 
-To build the project cleanly without arbitrary runtime lockups:
-1. `IDBFS` has been aggressively disabled and removed from the `vesc_tool.pro` WebAssembly linker flags.
-2. During initialization (in `main.cpp`), before Qt tries to instantiate any `QSettings` object, we utilize `EM_ASM` to inject a JavaScript bridge that parses `window.localStorage.getItem('vesc_settings_conf')`.
-3. If settings exist in the browser, C++ manually constructs the Qt `.config` directory structure inside Emscripten's volatile `MEMFS` and writes the localStorage string payload as an `utf8` initialized configuration file.
-4. Periodically (every 5 seconds via `setInterval`), we execute a JavaScript polling loop that watches Qt's internal `MEMFS` system and flushes any internal `QSettings` configuration mutation directly into `window.localStorage` under the `vesc_settings_conf` key.
-
-This ensures seamless `QSettings` parity with Native mode, whilst completely sidestepping Emscripten's asynchronous transaction traps! 
-
-### Memory Growth Limit Fix
-By default, the project was previously setting a hard limit for Memory on Boot via `QMAKE_LFLAGS += -s TOTAL_MEMORY=134217728` (128mb limits). The desktop layout instantiation combined with QML engines routinely exhausts this allocation limit during Heavy Boot loads resulting in silent `memory access out of bounds` Segmentation Faults. 
-
-To permanently banish out of memory issues, `-s ALLOW_MEMORY_GROWTH=1` has been formally set inside `vesc_tool.pro`- replacing manual memory constraints!
+### Memory Allocation
+Because QML and comprehensive desktop layouts can still prove memory-hungry during high-load render bootstrapping, we explicitly configure Qt 6 to allocate `256MB` of initial memory footprint right out of the gate by setting `QT_WASM_INITIAL_MEMORY` inside target properties!
