@@ -55,3 +55,4 @@ res/firmwares/*/
 
 # Nix output
 /result
+node_modules/
