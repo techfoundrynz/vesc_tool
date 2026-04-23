@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="utf-8">
-    <title>VESC Tool</title>
+    <title>VESC® Tool</title>
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <style>
         body {
@@ -83,13 +83,26 @@
         }
 
         @keyframes spin {
-            to { transform: rotate(360deg); }
+            to {
+                transform: rotate(360deg);
+            }
         }
 
         @keyframes pulse-glow {
-            0% { transform: scale(0.98); filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1)); }
-            50% { transform: scale(1.02); filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.25)); }
-            100% { transform: scale(0.98); filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1)); }
+            0% {
+                transform: scale(0.98);
+                filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
+            }
+
+            50% {
+                transform: scale(1.02);
+                filter: drop-shadow(0 0 25px rgba(255, 255, 255, 0.25));
+            }
+
+            100% {
+                transform: scale(0.98);
+                filter: drop-shadow(0 0 15px rgba(255, 255, 255, 0.1));
+            }
         }
     </style>
 </head>
@@ -172,12 +185,12 @@
         var Module = {
             arguments: appArgs,
             preRun: [
-                function() {
-                    try { FS.mkdir('/home/web_user'); } catch(e) {}
+                function () {
+                    try { FS.mkdir('/home/web_user'); } catch (e) { }
                     FS.mount(IDBFS, {}, '/home/web_user');
-                    
+
                     Module.addRunDependency('syncfs');
-                    FS.syncfs(true, function(err) {
+                    FS.syncfs(true, function (err) {
                         if (err) console.error("IDBFS mount error:", err);
                         Module.removeRunDependency('syncfs');
                     });
@@ -188,9 +201,9 @@
                     var loadingEl = document.getElementById("loading");
                     loadingEl.classList.add("fade-out");
                     setTimeout(() => { loadingEl.style.display = "none"; }, 600);
-                    
+
                     function flushSettings() {
-                        FS.syncfs(false, function(err) {
+                        FS.syncfs(false, function (err) {
                             if (err) console.log("IDBFS flush error:", err);
                         });
                     }
