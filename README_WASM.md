@@ -5,7 +5,20 @@ As of our latest major architectural upgrade, the WebAssembly port of VESC Tool 
 
 We now leverage the modern **Qt 6.8.1 WebAssembly environment** alongside standard `CMake` declarations. WebAssembly flags, including `ASYNCIFY` integrations and `idbfs_pre.js` hooks, are exclusively bundled into `CMakeLists.txt` via `EMSCRIPTEN` platform conditionals.
 
-When building the Wasm pipeline via Docker or compiling it locally in your own environment, you **must use Emscripten 3.1.70** (which strictly mirrors Qt 6.8.1 parity).
+When compiling it locally in your own WSL or Linux environment, you **must use Emscripten 3.1.70** (which strictly mirrors Qt 6.8.1 parity).
+
+### Containerized Target (Docker)
+The easiest way to generate the WebAssembly binaries natively without polluting your host environment is to mount the repository inside our custom compiler image.
+
+**1. To strictly compile the payload (Output to `web/dist`):**
+```bash
+docker run --rm -v ${PWD}:/workspace ghcr.io/techfoundrynz/vesc_tool/vesc-wasm-builder:qt6.8.1
+```
+
+**2. To compile the payload AND launch a test web server on localhost:8000:**
+```bash
+docker run --rm -it -v ${PWD}:/workspace -p 8000:8000 ghcr.io/techfoundrynz/vesc_tool/vesc-wasm-builder:qt6.8.1 /bin/bash -c "source /opt/emsdk/emsdk_env.sh && bash ./build_web && cd web/dist && python3 -m http.server 8000"
+```
 
 ## Persistence and Settings (Native IDBFS)
 Historically (under Qt 5.15), VESC Tool was forced to utilize a manual polling `localStorage` bridge injected directly inside `main.cpp` because Qt 5's internal `QSettings` destructor triggered fatal unwinding collisions when mixed with Emscripten's `ASYNCIFY` yielding and asynchronous `IDBFS` transactions.
