@@ -13,7 +13,7 @@ else
     QMAKE_CMD=$(command -v qt-cmake || echo "cmake")
 fi
 
-$QMAKE_CMD ../..
+$QMAKE_CMD -DQT_HOST_PATH="$QT_HOST_PATH" ../..
 
 echo "[3/4] Compiling VESC Tool for WebAssembly (this might take a while)..."
 make -j$(nproc) || cmake --build . --parallel

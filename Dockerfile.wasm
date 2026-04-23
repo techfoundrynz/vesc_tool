@@ -36,6 +36,7 @@ RUN aqt install-qt all_os wasm 6.8.1 wasm_singlethread -O /opt/qt -m qt5compat -
 
 # Add Qt bins and CMake to path
 ENV PATH="/opt/qt/6.8.1/wasm_singlethread/bin:${PATH}"
+ENV QT_HOST_PATH="/opt/qt/6.8.1/gcc_64"
 
 # Prepare emsdk environment startup script
 RUN echo "source /opt/emsdk/emsdk_env.sh > /dev/null 2>&1" >> /etc/bash.bashrc
