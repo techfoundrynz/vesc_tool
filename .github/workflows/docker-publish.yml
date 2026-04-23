@@ -30,7 +30,7 @@ jobs:
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
       
       - name: Build Docker Image
-        run: docker build -t ghcr.io/${{ steps.repo_name.outputs.NAME }}/vesc-wasm-builder:qt5.15.2 -f Dockerfile.wasm .
+        run: docker build -t ghcr.io/${{ steps.repo_name.outputs.NAME }}/vesc-wasm-builder:qt6.8.1 -f Dockerfile.wasm .
         
       - name: Push Docker Image
-        run: docker push ghcr.io/${{ steps.repo_name.outputs.NAME }}/vesc-wasm-builder:qt5.15.2
+        run: docker push ghcr.io/${{ steps.repo_name.outputs.NAME }}/vesc-wasm-builder:qt6.8.1
