@@ -241,15 +241,6 @@
                     var loadingEl = document.getElementById("loading");
                     loadingEl.classList.add("fade-out");
                     setTimeout(() => { loadingEl.style.display = "none"; }, 600);
-
-                    function flushSettings() {
-                        FS.syncfs(false, function (err) {
-                            if (err) console.log("IDBFS flush error:", err);
-                        });
-                    }
-                    window.addEventListener('beforeunload', flushSettings);
-                    window.addEventListener('pagehide', flushSettings);
-                    setInterval(flushSettings, 3000);
                 }
             ],
             print: (function () {
