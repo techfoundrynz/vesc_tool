@@ -5,25 +5,27 @@ echo "[1/4] Preparing WebAssembly Build Directory..."
 mkdir -p build/web
 cd build/web
 
-echo "[2/4] Generating Makefile with Qt 5.15 WebAssembly Toolchain..."
-# Prefer the specific Wasm toolchain qmake if it exists, otherwise fallback to PATH
-if [ -f "$HOME/Qt/5.15.2/wasm_32/bin/qmake" ]; then
-    QMAKE_CMD="$HOME/Qt/5.15.2/wasm_32/bin/qmake"
+echo "[2/4] Generating CMake build system with Qt 6 WebAssembly Toolchain..."
+# Assuming Qt 6 is in the user's PATH or provided via QT_HOST_PATH
+if [ -f "$HOME/Qt/6.11.0/wasm_singlethread/bin/qt-cmake" ]; then
+    QMAKE_CMD="$HOME/Qt/6.11.0/wasm_singlethread/bin/qt-cmake"
 else
-    QMAKE_CMD=$(command -v qmake)
+    QMAKE_CMD=$(command -v qt-cmake || echo "cmake")
 fi
-$QMAKE_CMD ../../vesc_tool.pro
+
+$QMAKE_CMD ../..
 
 echo "[3/4] Compiling VESC Tool for WebAssembly (this might take a while)..."
-make -j$(nproc)
+make -j$(nproc) || cmake --build . --parallel
 
 echo "[4/4] Copying artifacts to web/dist..."
 cd ../..
 mkdir -p web/dist
 
 # Copy the generated application binary and JS bindings.
-cp build/web/vesc_tool.js web/dist/
-cp build/web/vesc_tool.wasm web/dist/
+# In Qt 6 WebAssembly, the names might be vesc_tool.js / vesc_tool.wasm natively or different based on APP_TARGET
+cp build/web/*.js web/dist/ 2>/dev/null || true
+cp build/web/*.wasm web/dist/ 2>/dev/null || true
 
 # Copy the Qt loader just in case any internal modules attempt to lazily load it
 cp build/web/qtloader.js web/dist/ 2>/dev/null || true

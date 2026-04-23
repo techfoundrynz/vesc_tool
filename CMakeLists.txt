@@ -84,6 +84,12 @@ if(IOS)
     set(HAS_SERIALPORT OFF)
     set(BUILD_MOBILE ON)
 endif()
+if(EMSCRIPTEN)
+    set(HAS_SERIALPORT OFF)
+    set(HAS_BLUETOOTH OFF)
+    set(HAS_CANBUS OFF)
+    set(BUILD_MOBILE ON)
+endif()
 
 # Append optional Qt components
 if(HAS_SERIALPORT)
@@ -149,6 +155,9 @@ if(BUILD_MOBILE)
 endif()
 if(WIN32)
     list(APPEND VT_DEFINITIONS _USE_MATH_DEFINES)
+endif()
+if(EMSCRIPTEN)
+    list(APPEND VT_DEFINITIONS HAS_WEB_SERIAL HAS_WEB_BLUETOOTH)
 endif()
 
 # Build-tier defines & resources
@@ -244,6 +253,11 @@ if(HAS_BLUETOOTH)
 else()
     list(APPEND ROOT_SOURCES bleuartdummy.cpp)
     list(APPEND ROOT_HEADERS bleuartdummy.h)
+endif()
+
+if(EMSCRIPTEN)
+    list(APPEND ROOT_SOURCES webserialport.cpp webbluetooth.cpp)
+    list(APPEND ROOT_HEADERS webserialport.h webbluetooth.h)
 endif()
 
 # ---------------------------------------------------------------------------
@@ -1007,6 +1021,32 @@ endif()
 if(WIN32)
     set_target_properties(${APP_TARGET} PROPERTIES
         WIN32_EXECUTABLE TRUE
+    )
+endif()
+
+# ---------------------------------------------------------------------------
+# WebAssembly / Emscripten-specific
+# ---------------------------------------------------------------------------
+if(EMSCRIPTEN)
+    target_link_options(${APP_TARGET} PRIVATE
+        # Export necessary Qt/Emscripten bridging methods
+        "SHELL:-s EXPORTED_RUNTIME_METHODS=['UTF8ToString']"
+        # Enable ASYNCIFY to allow QEventLoop and waitSignal to yield to the browser
+        "SHELL:-s ASYNCIFY=1"
+        # Note: Depending on Qt 6.11, ASYNCIFY might be default or JSPI might be available.
+    )
+
+    # In Qt 6 WebAssembly, you often need to set the application HTML name or properties:
+    set_target_properties(${APP_TARGET} PROPERTIES
+        QT_WASM_INITIAL_MEMORY "256MB"
+        # We can also point it to the custom idbfs_pre.js if needed or other link args
+    )
+    
+    # If we want to link JS libraries directly:
+    target_link_options(${APP_TARGET} PRIVATE 
+        "--js-library" "${CMAKE_SOURCE_DIR}/web/web_serial_bridge.js"
+        "--js-library" "${CMAKE_SOURCE_DIR}/web/web_bluetooth_bridge.js"
+        "--pre-js"     "${CMAKE_SOURCE_DIR}/web/idbfs_pre.js"
     )
 endif()
 
