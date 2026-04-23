@@ -778,7 +778,9 @@ ApplicationWindow {
             dialogParent: mainSwipeView
 
             Component.onCompleted: {
-                startBleScan()
+                if (Qt.platform.os !== "wasm") {
+                    startBleScan()
+                }
             }
 
             onYChanged: {

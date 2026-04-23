@@ -28,7 +28,7 @@ void WebSerialPort::setBaudRate(int )
 bool WebSerialPort::open(int )
 {
 #ifdef Q_OS_WASM
-    mIsOpen = true;
+    mIsOpen = false; // Will be set to true by web_serial_connected
     // We can call Emscripten JS to request port here
     EM_ASM({
         if (window.requestWebSerial) {
@@ -52,12 +52,17 @@ void WebSerialPort::write(const QByteArray &data)
 {
 #ifdef Q_OS_WASM
     if(mIsOpen) {
-        // Send data over Web Serial
-        emscripten::val view = emscripten::val(emscripten::typed_memory_view(data.size(), (const uint8_t*)data.data()));
-        emscripten::val window = emscripten::val::global("window");
-        if (window.hasOwnProperty("writeWebSerial")) {
-            window.call<void>("writeWebSerial", view);
-        }
+        // Send data over Web Serial using EM_ASM instead of emscripten::val
+        // to avoid dependency on --bind and hasOwnProperty quirks
+        EM_ASM({
+            console.log("C++ EM_ASM write triggered: ", $1, " bytes");
+            if (window.writeWebSerial) {
+                var view = new Uint8Array(window.Module.HEAPU8.buffer, $0, $1);
+                window.writeWebSerial(view);
+            } else {
+                console.error("writeWebSerial is not present on window object!");
+            }
+        }, data.data(), data.size());
     }
 #else
     (void)data;
@@ -94,10 +99,22 @@ void WebSerialPort::jsDataCallback(const char *data, int len, void *context)
     emit port->readyRead();
 }
 
+void WebSerialPort::jsConnectedCallback(void *context)
+{
+    WebSerialPort *port = static_cast<WebSerialPort*>(context);
+    port->mIsOpen = true;
+    emit port->connected();
+}
+
 extern "C" {
     EMSCRIPTEN_KEEPALIVE
     void web_serial_rx(const char *data, int len, void *context) {
         WebSerialPort::jsDataCallback(data, len, context);
+    }
+    
+    EMSCRIPTEN_KEEPALIVE
+    void web_serial_connected(void *context) {
+        WebSerialPort::jsConnectedCallback(context);
     }
 }
 #endif

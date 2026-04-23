@@ -20,6 +20,8 @@ Module.preRun.push(function() {
                 }
             }
         }
-        removeRunDependency('syncfs');
+        setTimeout(() => {
+            removeRunDependency('syncfs');
+        }, 0);
     });
 });

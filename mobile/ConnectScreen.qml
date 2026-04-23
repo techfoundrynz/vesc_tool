@@ -175,6 +175,16 @@ Item {
                     }
 
                     MenuItem {
+                        text: "Scan Serial"
+                        visible: Qt.platform.os === "wasm"
+                        onTriggered: {
+                            bleModel.clear()
+                            vescsUdp = []
+                            mBle.emitScanDone()
+                        }
+                    }
+
+                    MenuItem {
                         text: "Ping TCP hub"
                         onTriggered: {
                             bleModel.clear()

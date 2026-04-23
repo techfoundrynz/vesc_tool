@@ -157,7 +157,7 @@ public:
     Q_INVOKABLE static QString arr2str(QByteArray a) {return QString(a);}
 
     Q_INVOKABLE static bool hasSerialport() {
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
         return true;
 #else
         return false;

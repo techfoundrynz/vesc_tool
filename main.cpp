@@ -43,6 +43,7 @@
 #include <emscripten.h>
 #include <QDir>
 #include <QFileInfo>
+#include <QTimer>
 #endif
 
 #include "tcphub.h"
@@ -175,6 +176,45 @@ int main(int argc, char *argv[])
     QCoreApplication::setOrganizationName("VESC");
     QCoreApplication::setOrganizationDomain("vesc-project.com");
     QCoreApplication::setApplicationName("VESC Tool");
+
+#ifdef Q_OS_WASM
+    QSettings::setDefaultFormat(QSettings::IniFormat);
+    // VESC Tool's WASM implementation natively uses Emscripten IDBFS for persistence.
+    // However, Emscripten 1.39 has a bug where ASYNCIFY and IDBFS conflict inside C++ 
+    // unwind transitions, causing fatal "unreachable" trapping errors during runtime.
+    // To resolve this, IDBFS was disabled in vesc_tool.pro and we use this localStorage 
+    // bridge shim instead which explicitly manages reads and writes to Qt's underlying MEMFS.
+    
+    // 1. Restore from localStorage BEFORE any QSettings is formally initialized.
+    QString path = "/home/web_user/.config/VESC/VESC Tool.ini";
+    {
+        EM_ASM_({
+            var filePath = UTF8ToString($0);
+            var savedText = window.localStorage.getItem('vesc_settings_conf');
+            if (savedText) {
+                // Ensure recursive directories exist
+                var parts = filePath.split('/');
+                var dir = '';
+                for (var i = 1; i < parts.length - 1; i++) {
+                    dir += '/' + parts[i];
+                    try { FS.mkdir(dir); } catch(e) {}
+                }
+                try { FS.writeFile(filePath, savedText); } catch(e) {}
+            }
+        }, path.toUtf8().constData());
+    }
+
+    // 2. Begin periodic export loops to localStorage
+    EM_ASM_({
+        var filePath = UTF8ToString($0);
+        setInterval(function() {
+            try {
+                var content = FS.readFile(filePath, { encoding: 'utf8' });
+                window.localStorage.setItem('vesc_settings_conf', content);
+            } catch(e) {}
+        }, 5000);
+    }, path.toUtf8().constData());
+#endif
 
     QSettings set;
     bool isDark = set.value("darkMode", true).toBool();
@@ -1708,14 +1748,6 @@ int main(int argc, char *argv[])
     SetIosParams();
 #endif
 
-#ifdef Q_OS_WASM
-    {
-        QSettings dummy;
-        QString configPath = dummy.fileName();
-        QFileInfo fi(configPath);
-        QDir().mkpath(fi.absolutePath());
-    }
-#endif
     int res = app->exec();
 
 #ifdef USE_MOBILE

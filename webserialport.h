@@ -23,6 +23,7 @@ public:
     qint64 bytesAvailable() const { return mBuffer.size(); }
 
 signals:
+    void connected();
     void readyRead();
     void error(int err);
 
@@ -33,6 +34,7 @@ private:
 public:
 #ifdef Q_OS_WASM
     static void jsDataCallback(const char *data, int len, void *context);
+    static void jsConnectedCallback(void *context);
 #endif
 };
 

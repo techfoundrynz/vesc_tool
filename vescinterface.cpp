@@ -149,6 +149,9 @@ VescInterface::VescInterface(QObject *parent) : QObject(parent)
 
     connect(mSerialPort, &WebSerialPort::readyRead, this, &VescInterface::serialDataAvailable);
     connect(mSerialPort, &WebSerialPort::error, this, &VescInterface::serialPortError);
+    connect(mSerialPort, &WebSerialPort::connected, [this]{
+        setLastConnectionType(CONN_SERIAL);
+    });
 #endif
 
     // CANbus
@@ -2197,7 +2200,7 @@ bool VescInterface::isPortConnected()
 {
     bool res = false;
 
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
     if (mSerialPort->isOpen()) {
         res = true;
     }
@@ -2228,9 +2231,12 @@ bool VescInterface::isPortConnected()
 
 void VescInterface::disconnectPort()
 {
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
     if(mSerialPort->isOpen()) {
+        // flush isn't available on Web Serial natively but the proxy object might ignore it
+#ifdef HAS_SERIALPORT
         mSerialPort->flush();
+#endif
         mSerialPort->close();
         updateFwRx(false);
     }
@@ -2389,7 +2395,7 @@ QString VescInterface::getConnectedPortName()
     QString res = tr("Not connected");
     bool connected = false;
 
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
     if (mSerialPort->isOpen()) {
         res = tr("Connected (serial) to %1").arg(mSerialPort->portName());
         connected = true;
@@ -2539,6 +2545,14 @@ QVariantList VescInterface::listSerialPorts()
 
         res.insert(index, QVariant::fromValue(info));
     }
+#endif
+#ifdef HAS_WEB_SERIAL
+    VSerialInfo_t info;
+    info.name = "Web Serial API";
+    info.systemPath = "web-serial";
+    info.isVesc = false;
+    info.isEsp = true;
+    res.append(QVariant::fromValue(info));
 #endif
 
     return res;
@@ -3327,7 +3341,7 @@ void VescInterface::timerSlot()
 
 void VescInterface::packetDataToSend(QByteArray data)
 {
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
     if (mSerialPort->isOpen()) {
         mSerialPort->write(data);
     }
@@ -3488,12 +3502,14 @@ void VescInterface::fwVersionReceived(FW_RX_PARAMS params)
         auto pair = mLastFwUuids[mUuidStrLocal];
 
         if (pair.second >= 0 && pair.first != mUuidStr && !mFwSwapDone && !mBlockFwSwap) {
+#ifndef Q_OS_WASM
             FW_RX_PARAMS pRx;
             bool ok = Utility::getFwVersionBlockingCan(this, &pRx, pair.second, 1500);
             if (ok && Utility::uuid2Str(pRx.uuid, false) == pair.first) {
                 mCommands->setSendCan(true, pair.second);
                 return;
             }
+#endif
         }
     }
 
@@ -3922,6 +3938,7 @@ void VescInterface::fwVersionReceived(FW_RX_PARAMS params)
                 }
             }
 
+#ifndef Q_OS_WASM
             QByteArray configData;
             int confIndLast = 0;
             int lenConfLast = -1;
@@ -3991,6 +4008,7 @@ void VescInterface::fwVersionReceived(FW_RX_PARAMS params)
             }
 
             disconnect(conn);
+#endif
         }
 
         mCustomConfigsLoaded = readConfigsOk;
@@ -4018,6 +4036,7 @@ void VescInterface::fwVersionReceived(FW_RX_PARAMS params)
             }
         }
 
+#ifndef Q_OS_WASM
         if (!cacheLoadOk) {
             QByteArray qmlData;
             int lenQmlLast = -1;
@@ -4074,6 +4093,7 @@ void VescInterface::fwVersionReceived(FW_RX_PARAMS params)
 
             disconnect(conn);
         }
+#endif
     }
 
     // Read qmlui APP
@@ -4098,6 +4118,7 @@ void VescInterface::fwVersionReceived(FW_RX_PARAMS params)
             }
         }
 
+#ifndef Q_OS_WASM
         if (!cacheLoadOk) {
             QByteArray qmlData;
             int lenQmlLast = -1;
@@ -4154,6 +4175,7 @@ void VescInterface::fwVersionReceived(FW_RX_PARAMS params)
 
             disconnect(conn);
         }
+#endif
     }
 
     if (params.hasQmlApp || params.hasQmlHw) {

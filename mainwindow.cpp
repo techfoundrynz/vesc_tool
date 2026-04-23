@@ -954,10 +954,16 @@ void MainWindow::timerSlot()
             mSettings.setValue("intro_done", false);
         }
 
+#ifdef Q_OS_WASM
+        mSettings.setValue("intro_done", true);
+#endif
+
+#ifndef Q_OS_WASM
         if (!mSettings.value("intro_done").toBool()) {
             StartupWizard w(mVesc, this);
             w.exec();
         }
+#endif
 
         if (!mSettings.value("intro_done").toBool()) {
             QMessageBox::critical(this,

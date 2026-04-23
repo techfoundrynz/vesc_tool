@@ -149,7 +149,7 @@ void PageConnection::setVesc(VescInterface *vesc)
     }
 #endif
 
-#ifdef HAS_SERIALPORT
+#if defined(HAS_SERIALPORT) || defined(HAS_WEB_SERIAL)
     ui->serialBaudBox->setValue(mVesc->getLastSerialBaud());
 #endif
 

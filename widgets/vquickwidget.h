@@ -13,7 +13,9 @@ class VQuickWidget : public QWidget
 {
     Q_OBJECT
 public:
-    explicit VQuickWidget(QWidget *parent = nullptr) : QWidget(parent) {}
+    explicit VQuickWidget(QWidget *parent = nullptr) : QWidget(parent) {
+        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
+    }
     
     enum ResizeMode { SizeViewToRootObject, SizeRootObjectToView };
     
