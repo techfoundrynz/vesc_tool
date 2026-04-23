@@ -30,7 +30,7 @@ RUN pip3 install --upgrade aqtinstall certifi
 WORKDIR /opt/qt
 # We install Qt into /opt/qt using aqtinstall. 
 # Qt 6 WebAssembly requires the standard desktop installation for host tools (moc, rcc, uic), which --autodesktop handles automatically.
-RUN aqt install-qt linux wasm 6.8.1 wasm_singlethread -O /opt/qt -m qt5compat --autodesktop
+RUN aqt install-qt all_os wasm 6.8.1 wasm_singlethread -O /opt/qt -m qt5compat --autodesktop
 
 # Add Qt bins and CMake to path
 ENV PATH="/opt/qt/6.8.1/wasm_singlethread/bin:${PATH}"
